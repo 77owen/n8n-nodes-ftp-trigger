@@ -10,6 +10,7 @@ import { NodeApiError } from 'n8n-workflow';
 
 import moment from 'moment';
 import { basename } from 'path';
+import picomatch from 'picomatch';
 
 import ftpClient from 'promise-ftp';
 import sftpClient from 'ssh2-sftp-client';
@@ -252,6 +253,29 @@ export class FtpTrigger implements INodeType {
 				],
 			},
 			{
+				displayName: 'Options',
+				name: 'options',
+				type: 'collection',
+				placeholder: 'Add Option',
+				default: {},
+				displayOptions: {
+					show: {
+						triggerOn: ['specificFolder'],
+					},
+				},
+				options: [
+					{
+						displayName: 'Filename Filter',
+						name: 'fileNamePattern',
+						type: 'string',
+						default: '',
+						placeholder: '*.csv',
+						description:
+							'Glob pattern to filter files by name (e.g. "HR_Feed*.csv"). Leave empty to match all files.',
+					},
+				],
+			},
+			{
 				displayName: "Changes within subfolders won't trigger this node",
 				name: 'asas',
 				type: 'notice',
@@ -307,6 +331,9 @@ export class FtpTrigger implements INodeType {
 		const triggerOn = this.getNodeParameter('triggerOn') as string;
 		const event = this.getNodeParameter('event') as string;
 		const isFileEvent = event.startsWith('file');
+		const options = this.getNodeParameter('options', {}) as IDataObject;
+		const fileNamePattern = (options.fileNamePattern as string) || '';
+		const isMatch = fileNamePattern ? picomatch(fileNamePattern, { dot: true }) : null;
 		const webhookData = this.getWorkflowStaticData('node');
 		const now = moment().utc().format();
 		let responseData;
@@ -362,6 +389,12 @@ export class FtpTrigger implements INodeType {
 			? normalizeSftpItem(item as sftpClient.FileInfo, path)
 			: normalizeFtpItem(item as ftpClient.ListingElement, path),
 		) || [];
+
+		if (isMatch) {
+			files = files.filter((file: ReturnFtpItem) =>
+				file.type !== '-' || isMatch(file.name),
+			);
+		}
 
 		const updatedFileMap = files.reduce((obj: IDataObject, file: ReturnFtpItem) => {
 			obj[file.path] = {

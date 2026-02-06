@@ -43,6 +43,7 @@
     "@types/request-promise-native": "~1.0.15",
     "@types/ssh2-sftp-client": "^9.0.0",
     "@typescript-eslint/parser": "~5.45",
+    "@types/picomatch": "^3.0.1",
     "eslint-plugin-n8n-nodes-base": "^1.11.0",
     "gulp": "^4.0.2",
     "n8n-core": "*",
@@ -51,6 +52,7 @@
     "typescript": "~4.8.4"
   },
   "dependencies": {
+    "picomatch": "^4.0.2",
     "promise-ftp": "^1.3.5",
     "ssh2-sftp-client": "^9.1.0"
   }
