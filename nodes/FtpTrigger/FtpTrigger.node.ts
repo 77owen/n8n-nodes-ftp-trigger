@@ -14,6 +14,27 @@ import { basename } from 'path';
 import ftpClient from 'promise-ftp';
 import sftpClient from 'ssh2-sftp-client';
 
+function formatPrivateKey(privateKey: string): string {
+	if (!privateKey || /\n/.test(privateKey)) {
+		return privateKey;
+	}
+	let formattedPrivateKey = '';
+	const parts = privateKey.split('-----').filter((item) => item !== '');
+	parts.forEach((part) => {
+		const regex = /(PRIVATE KEY|CERTIFICATE)/;
+		if (regex.test(part)) {
+			formattedPrivateKey += `-----${part}-----`;
+		} else {
+			const passRegex = /Proc-Type|DEK-Info/;
+			if (passRegex.test(part)) {
+				part = part.replace(/:\s+/g, ':');
+			}
+			formattedPrivateKey += part.replace(/\\n/g, '\n').replace(/\s+/g, '\n');
+		}
+	});
+	return formattedPrivateKey;
+}
+
 interface FileMapEntry {
 	mtime: number;
 	type: string;
@@ -325,14 +346,23 @@ export class FtpTrigger implements INodeType {
 
 		if (protocol === 'sftp') {
 			sftp = new sftpClient();
-			await sftp.connect({
-			host: credentials.host as string,
-				port: credentials.port as number,
-				username: credentials.username as string,
-				password: credentials.password as string,
-				privateKey: credentials.privateKey as string | undefined,
-				passphrase: credentials.passphrase as string | undefined,
-			});
+			if (credentials.privateKey) {
+				await sftp.connect({
+					host: credentials.host as string,
+					port: credentials.port as number,
+					username: credentials.username as string,
+					password: (credentials.password as string) || undefined,
+					privateKey: formatPrivateKey(credentials.privateKey as string),
+					passphrase: credentials.passphrase as string | undefined,
+				});
+			} else {
+				await sftp.connect({
+					host: credentials.host as string,
+					port: credentials.port as number,
+					username: credentials.username as string,
+					password: credentials.password as string,
+				});
+			}
 		} else {
 			ftp = new ftpClient();
 			await ftp.connect({
