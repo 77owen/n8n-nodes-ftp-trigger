@@ -1,71 +1,53 @@
 import type {
-	IPollFunctions,
+	ICredentialDataDecryptedObject,
+	ICredentialTestFunctions,
+	ICredentialsDecrypted,
+	IDataObject,
+	ILoadOptionsFunctions,
+	IBinaryData,
+	INodeCredentialTestResult,
 	INodeExecutionData,
+	INodeListSearchItems,
+	INodeListSearchResult,
 	INodeType,
 	INodeTypeDescription,
-	ICredentialDataDecryptedObject,
-	IDataObject,
+	IPollFunctions,
 } from 'n8n-workflow';
 import { NodeApiError } from 'n8n-workflow';
 
-import moment from 'moment';
+import picomatch from 'picomatch';
 import { basename } from 'path';
 
 import ftpClient from 'promise-ftp';
 import sftpClient from 'ssh2-sftp-client';
 
-interface FileMapEntry {
-	mtime: number;
-	type: string;
-}
-
-interface ReturnFtpItem {
-	type: string;
-	name: string;
-	size: number;
-	accessTime: Date;
-	modifyTime: Date;
-	rights: {
-		user: string;
-		group: string;
-		other: string;
-	};
-	owner: string | number;
-	group: string | number;
-	target: string;
-	sticky?: boolean;
-	path: string;
-}
-
-function normalizeFtpItem(input: ftpClient.ListingElement, path: string, recursive = false) {
-	const item = input as unknown as ReturnFtpItem;
-	item.modifyTime = input.date;
-	item.path = !recursive ? `${path}${path.endsWith('/') ? '' : '/'}${item.name}` : path;
-	//@ts-ignore
-	delete item.date;
-	return item;
-}
-
-function normalizeSftpItem(input: sftpClient.FileInfo, path: string, recursive = false) {
-	const item = input as unknown as ReturnFtpItem;
-	item.accessTime = new Date(input.accessTime);
-	item.modifyTime = new Date(input.modifyTime);
-	item.path = !recursive ? `${path}${path.endsWith('/') ? '' : '/'}${item.name}` : path;
-	return item;
-}
+import {
+	downloadFile,
+	getErrorMessage,
+	getFtpConnectOptions,
+	getMimeType,
+	getSftpConnectOptions,
+	normalizeFtpItem,
+	normalizeSftpItem,
+	pruneFileMap,
+	selectEventFiles,
+	statWatchedPath,
+	type FileMapEntry,
+	type ReturnFtpItem,
+} from './lib';
 
 export class FtpTrigger implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'FTP Trigger',
 		name: 'ftpTrigger',
-		icon: 'fa:server',
+		icon: 'file:ftpTrigger.svg',
+		iconColor: 'dark-blue',
 		group: ['trigger'],
 		version: 1,
 		description: 'Trigger a workflow on FTP or SFTP filesystem changes',
 		subtitle: '={{$parameter["protocol"] + ": " + $parameter["event"]}}',
 		defaults: {
 			name: 'FTP Trigger',
-			color: '#303050',
 		},
 		credentials: [
 			{
@@ -119,18 +101,14 @@ export class FtpTrigger implements INodeType {
 				required: true,
 				default: 'specificFolder',
 				options: [
-					// {
-					// 	name: 'Changes to a Specific File',
-					// 	value: 'specificFile',
-					// },
+					{
+						name: 'Changes to a Specific File',
+						value: 'specificFile',
+					},
 					{
 						name: 'Changes Involving a Specific Folder',
 						value: 'specificFolder',
 					},
-					// {
-					// 	name: 'Changes To Any File/Folder',
-					// 	value: 'anyFileFolder',
-					// },
 				],
 			},
 			{
@@ -154,7 +132,7 @@ export class FtpTrigger implements INodeType {
 						displayName: 'Path',
 						name: 'path',
 						type: 'string',
-						placeholder: '/etc/hosts'
+						placeholder: '/etc/hosts',
 					},
 				],
 				displayOptions: {
@@ -252,8 +230,95 @@ export class FtpTrigger implements INodeType {
 				],
 			},
 			{
+				displayName: 'Options',
+				name: 'options',
+				type: 'collection',
+				placeholder: 'Add Option',
+				default: {},
+				displayOptions: {
+					show: {
+						triggerOn: ['specificFolder'],
+					},
+				},
+				options: [
+					{
+						displayName: 'Filename Filter',
+						name: 'fileNamePattern',
+						type: 'string',
+						default: '',
+						placeholder: '*.csv',
+						description:
+							'Glob pattern to filter files by name (e.g. "HR_Feed*.csv"). Leave empty to match all files.',
+					},
+					{
+						displayName: 'Ignore Files Modified Within Last',
+						name: 'ignoreModifiedWithinSeconds',
+						type: 'number',
+						default: 0,
+						typeOptions: {
+							minValue: 0,
+							maxValue: 86400,
+						},
+						description:
+							'Wait until files have not been modified for this many seconds before triggering, so files that are still being uploaded are not picked up too early. Their event is emitted on a later poll once the file is stable. Set to 0 to disable. Applies to created and updated events.',
+					},
+					{
+						displayName: 'Include File Content',
+						name: 'includeFileContent',
+						type: 'boolean',
+						default: false,
+						description:
+							'Whether to download the file and include its content as binary data (property "data") in each emitted item. Not available for folder or file-deleted events.',
+						displayOptions: {
+							hide: {
+								event: [
+									'fileDeleted',
+									'folderCreated',
+									'folderDeleted',
+									'folderUpdated',
+									'watchFolderUpdated',
+								],
+							},
+						},
+					},
+				],
+			},
+			{
+				displayName: 'Options',
+				name: 'options',
+				type: 'collection',
+				placeholder: 'Add Option',
+				default: {},
+				displayOptions: {
+					show: {
+						triggerOn: ['specificFile'],
+					},
+				},
+				options: [
+					{
+						displayName: 'Ignore Files Modified Within Last',
+						name: 'ignoreModifiedWithinSeconds',
+						type: 'number',
+						default: 0,
+						typeOptions: {
+							minValue: 0,
+							maxValue: 86400,
+						},
+						description:
+							'Wait until the file has not been modified for this many seconds before triggering, so it is not picked up while it is still being written. The event is emitted on a later poll once the file is stable. Set to 0 to disable.',
+					},
+					{
+						displayName: 'Include File Content',
+						name: 'includeFileContent',
+						type: 'boolean',
+						default: false,
+						description: 'Whether to download the file and include its content as binary data (property "data") in the emitted item',
+					},
+				],
+			},
+			{
 				displayName: "Changes within subfolders won't trigger this node",
-				name: 'asas',
+				name: 'subfoldersNotice',
 				type: 'notice',
 				displayOptions: {
 					show: {
@@ -265,179 +330,247 @@ export class FtpTrigger implements INodeType {
 				},
 				default: '',
 			},
-			{
-				displayName: 'Watch For',
-				name: 'event',
-				type: 'options',
-				displayOptions: {
-					show: {
-						triggerOn: ['anyFileFolder'],
-					},
-				},
-				required: true,
-				default: 'fileCreated',
-				options: [
-					{
-						name: 'File Created',
-						value: 'fileCreated',
-						description: 'When a file is created in the watched drive',
-					},
-					{
-						name: 'File Updated',
-						value: 'fileUpdated',
-						description: 'When a file is updated in the watched drive',
-					},
-					{
-						name: 'Folder Created',
-						value: 'folderCreated',
-						description: 'When a folder is created in the watched drive',
-					},
-					{
-						name: 'Folder Updated',
-						value: 'folderUpdated',
-						description: 'When a folder is updated in the watched drive',
-					},
-				],
-				description: 'When to trigger this node',
-			},
 		],
 	};
 
+	methods = {
+		credentialTest: {
+			async ftpConnectionTest(
+				this: ICredentialTestFunctions,
+				credential: ICredentialsDecrypted,
+			): Promise<INodeCredentialTestResult> {
+				const credentials = credential.data as ICredentialDataDecryptedObject;
+				const ftp = new ftpClient();
+				try {
+					await ftp.connect(getFtpConnectOptions(credentials));
+				} catch (error) {
+					await ftp.end().catch(() => {});
+					return {
+						status: 'Error',
+						message: getErrorMessage(error),
+					};
+				}
+				await ftp.end();
+				return {
+					status: 'OK',
+					message: 'Connection successful!',
+				};
+			},
+			async sftpConnectionTest(
+				this: ICredentialTestFunctions,
+				credential: ICredentialsDecrypted,
+			): Promise<INodeCredentialTestResult> {
+				const credentials = credential.data as ICredentialDataDecryptedObject;
+				const sftp = new sftpClient();
+				try {
+					await sftp.connect(getSftpConnectOptions(credentials));
+				} catch (error) {
+					await sftp.end().catch(() => {});
+					return {
+						status: 'Error',
+						message: getErrorMessage(error),
+					};
+				}
+				await sftp.end();
+				return {
+					status: 'OK',
+					message: 'Connection successful!',
+				};
+			},
+		},
+		listSearch: {
+			async fileSearch(
+				this: ILoadOptionsFunctions,
+				filter?: string,
+			): Promise<INodeListSearchResult> {
+				const protocol = (this.getCurrentNodeParameter('protocol') as string) || 'ftp';
+				const credentials = await this.getCredentials(protocol === 'sftp' ? 'sftp' : 'ftp');
+
+				let ftp: ftpClient | undefined;
+				let sftp: sftpClient | undefined;
+				try {
+					if (protocol === 'sftp') {
+						sftp = new sftpClient();
+						await sftp.connect(getSftpConnectOptions(credentials));
+					} else {
+						ftp = new ftpClient();
+						await ftp.connect(getFtpConnectOptions(credentials));
+					}
+
+					const responseData = protocol === 'sftp' ? await sftp!.list('.') : await ftp!.list('.');
+
+					const lowerFilter = (filter ?? '').toLowerCase();
+					const results: INodeListSearchItems[] = responseData
+						.filter((item) => typeof item !== 'string')
+						.map((item) => {
+							const element = item as ftpClient.ListingElement;
+							return {
+								name: element.type === 'd' ? `${element.name}/` : element.name,
+								value: element.name,
+								description: element.type === 'd' ? 'Folder' : `File (${element.size} bytes)`,
+							};
+						})
+						.filter((item) => !lowerFilter || item.name.toLowerCase().includes(lowerFilter))
+						.slice(0, 50);
+					return { results };
+				} finally {
+					if (sftp) {
+						await sftp.end().catch(() => {});
+					}
+					if (ftp) {
+						await ftp.end().catch(() => {});
+					}
+				}
+			},
+		},
+	};
+
 	async poll(this: IPollFunctions): Promise<INodeExecutionData[][] | null> {
+		const protocol = this.getNodeParameter('protocol') as string;
 		const triggerOn = this.getNodeParameter('triggerOn') as string;
 		const event = this.getNodeParameter('event') as string;
-		const isFileEvent = event.startsWith('file');
 		const webhookData = this.getWorkflowStaticData('node');
-		const now = moment().utc().format();
-		let responseData;
-		let files: any = [];
-		let path: string;
-		let credentials: ICredentialDataDecryptedObject | undefined = undefined;
-		const protocol = this.getNodeParameter('protocol', 0) as string;
+		const now = Date.now();
 
-		if (protocol === 'sftp') {
-			credentials = await this.getCredentials('sftp');
-		} else {
-			credentials = await this.getCredentials('ftp');
+		const options = this.getNodeParameter('options', {}) as IDataObject;
+		const fileNamePattern = (options.fileNamePattern as string) || '';
+		const isMatch = fileNamePattern ? picomatch(fileNamePattern, { dot: true }) : null;
+		const stabilityWindowSeconds = Number(options.ignoreModifiedWithinSeconds ?? 0) || 0;
+		const includeFileContent = options.includeFileContent === true;
+		// During manual test runs ("Fetch Test Event") the stability window is
+		// bypassed, otherwise a just-uploaded file could not be fetched at all.
+		const stabilityWindowMs = this.getMode() === 'manual' ? 0 : stabilityWindowSeconds * 1000;
+
+		const credentials = await this.getCredentials(protocol === 'sftp' ? 'sftp' : 'ftp');
+
+		const watchedPath =
+			triggerOn === 'specificFile'
+				? (this.getNodeParameter('fileToWatch', '', { extractValue: true }) as string)
+				: (this.getNodeParameter('folderToWatch', '', { extractValue: true }) as string);
+
+		// Reset the tracked state when the watched path is changed
+		const isFirstRun = webhookData.fileMap === undefined;
+		if (webhookData.watchedPath !== undefined && webhookData.watchedPath !== watchedPath) {
+			webhookData.fileMap = undefined;
 		}
-		let ftp: ftpClient;
-		let sftp: sftpClient;
+		webhookData.watchedPath = watchedPath;
+		const previousMap = ((webhookData.fileMap as Record<string, FileMapEntry>) || {}) as Record<
+			string,
+			FileMapEntry
+		>;
 
-		if (protocol === 'sftp') {
-			sftp = new sftpClient();
-			await sftp.connect({
-			host: credentials.host as string,
-				port: credentials.port as number,
-				username: credentials.username as string,
-				password: credentials.password as string,
-				privateKey: credentials.privateKey as string | undefined,
-				passphrase: credentials.passphrase as string | undefined,
-			});
-		} else {
-			ftp = new ftpClient();
-			await ftp.connect({
-				host: credentials.host as string,
-				port: credentials.port as number,
-				user: credentials.username as string,
-				password: credentials.password as string,
-			});
-		}
+		let ftp: ftpClient | undefined;
+		let sftp: sftpClient | undefined;
 
-		const endDate = now;
-
-		if (triggerOn === 'specificFolder' && event !== 'watchFolderUpdated') {
-			path = this.getNodeParameter('folderToWatch', '', { extractValue: true }) as string;
+		try {
 			if (protocol === 'sftp') {
-				responseData = await sftp!.list(path);
-				await sftp!.end();
+				sftp = new sftpClient();
+				await sftp.connect(getSftpConnectOptions(credentials));
 			} else {
-				responseData = await ftp!.list(path);
-				await ftp!.end();
+				ftp = new ftpClient();
+				await ftp.connect(getFtpConnectOptions(credentials));
 			}
-		} else {
-			path = this.getNodeParameter('folderToWatch', '', { extractValue: true }) as string;
-		}
 
-		files = responseData?.map((item) => protocol === 'sftp'
-			? normalizeSftpItem(item as sftpClient.FileInfo, path)
-			: normalizeFtpItem(item as ftpClient.ListingElement, path),
-		) || [];
+			let currentFiles: ReturnFtpItem[] = [];
 
-		const updatedFileMap = files.reduce((obj: IDataObject, file: ReturnFtpItem) => {
-			obj[file.path] = {
-				type: file.type,
-				mtime: file.modifyTime.getTime(),
-			};
-			return obj;
-		}, {});
-
-		// Compare the state
-		const map = (webhookData.fileMap as IDataObject) || {};
-		const getModifyTime = (p: string) => (map[p] as FileMapEntry)?.mtime as number | undefined
-
-		const isNewFile = (file: ReturnFtpItem) => {
-			const modifyTime = getModifyTime(file.path);
-			return modifyTime == undefined;
-		};
-
-		const isModifiedFile = (file: ReturnFtpItem) => {
-			const modifyTime = getModifyTime(file.path);
-			return modifyTime ? modifyTime < file.modifyTime.getTime() : false;
-		};
-
-		//console.log(Object.keys(webhookData.fileMap || {}).length, isFileEvent ? 'files' : 'folders' + ' currently tracked');
-
-		if (event === 'fileUpdated' || event === 'folderUpdated') {
-			files = files.filter(isModifiedFile);
-		} else if (event === 'fileCreated' || event === 'folderCreated') {
-			files = files.filter(isNewFile);
-		} else if (event === 'fileDeleted' || event === 'folderDeleted') {
-			const deletedFiles = [];
-			for (const p of Object.keys(map)) {
-				if (!p.startsWith(path)) {
-					// console.log('skipping file: ', p);
-					continue;
-				}
-				const exists = updatedFileMap.hasOwnProperty(p);
-				if (!exists) {
-					// console.log('file deleted: ', p);
-					deletedFiles.push({
-						type: (map[p] as FileMapEntry).type,
-						name: basename(p),
-						size: 0,
-						modifyTime: new Date(),
-						accessTime: new Date((map[p] as FileMapEntry).mtime),
-						longname: '',
-						path: p,
-					});
-				} else {
-					// console.log('file still exists: ', p, 'with modify time', updatedFileMap[p]);
+			if (triggerOn === 'specificFolder' && event !== 'watchFolderUpdated') {
+				const responseData =
+					protocol === 'sftp' ? await sftp!.list(watchedPath) : await ftp!.list(watchedPath);
+				currentFiles = responseData
+					.filter((item) => typeof item !== 'string')
+					.map((item) =>
+						protocol === 'sftp'
+							? normalizeSftpItem(item as sftpClient.FileInfo, watchedPath)
+							: normalizeFtpItem(item as ftpClient.ListingElement, watchedPath),
+					);
+			} else {
+				// 'watchFolderUpdated' and 'specificFile' both track a single path
+				// (the watched folder itself, or the watched file) via stat instead
+				// of a directory listing
+				const entry = await statWatchedPath(protocol, ftp, sftp, watchedPath);
+				if (entry) {
+					currentFiles = [entry];
 				}
 			}
-			files = deletedFiles;
-		}
 
-		if (isFileEvent) {
-			files = files.filter((item: any) => item.type === '-');
-		} else {
-			files = files.filter((item: any) => item.type === 'd');
-		}
+			if (isMatch) {
+				currentFiles = currentFiles.filter(
+					(file) => file.type !== '-' || isMatch(file.name),
+				);
+			}
 
-		webhookData.fileMap = updatedFileMap;
-		webhookData.lastTimeChecked = endDate;
+			// On the very first run only record the current state without emitting
+			// events, so that pre-existing files don't all trigger 'fileCreated'
+			if (isFirstRun && this.getMode() !== 'manual') {
+				const initialMap: Record<string, FileMapEntry> = {};
+				for (const file of currentFiles) {
+					initialMap[file.path] = {
+						mtime: file.modifyTime.getTime(),
+						size: file.size ?? 0,
+						type: file.type,
+					};
+				}
+				pruneFileMap(initialMap);
+				webhookData.fileMap = initialMap;
+				return null;
+			}
 
-		// console.log(files);
-
-		if (Array.isArray(files) && files.length) {
-			return [this.helpers.returnJsonArray(files.map(json => ({ json })))];
-		}
-
-		if (this.getMode() === 'manual') {
-			throw new NodeApiError(this.getNode(), {
-				message: 'No data with the current filter could be found',
+			const { emit: files, nextMap } = selectEventFiles({
+				event,
+				watchedPath,
+				previousMap,
+				currentFiles,
+				now,
+				stabilityWindowMs,
 			});
-		}
 
-		return null;
+			pruneFileMap(nextMap);
+			webhookData.fileMap = nextMap;
+
+			// Optionally download the content of each emitted file and attach it
+			// as binary data. Folder events and file deletions have no content.
+			const binaries = new Map<string, IBinaryData>();
+			if (includeFileContent && event.startsWith('file') && event !== 'fileDeleted') {
+				for (const file of files) {
+					try {
+						const buffer = await downloadFile(protocol, ftp, sftp, file.path);
+						const fileName = basename(file.path);
+						binaries.set(
+							file.path,
+							await this.helpers.prepareBinaryData(buffer, fileName, getMimeType(fileName)),
+						);
+					} catch (error) {
+						file.downloadError = getErrorMessage(error);
+					}
+				}
+			}
+
+			if (files.length) {
+				const returnItems: INodeExecutionData[] = files.map((file) => {
+					const item: INodeExecutionData = { json: file as unknown as IDataObject };
+					const binary = binaries.get(file.path);
+					if (binary) {
+						item.binary = { data: binary };
+					}
+					return item;
+				});
+				return [returnItems];
+			}
+
+			if (this.getMode() === 'manual') {
+				throw new NodeApiError(this.getNode(), {
+					message: 'No data with the current filter could be found',
+				});
+			}
+
+			return null;
+		} finally {
+			if (sftp) {
+				await sftp.end().catch(() => {});
+			}
+			if (ftp) {
+				await ftp.end().catch(() => {});
+			}
+		}
 	}
 }

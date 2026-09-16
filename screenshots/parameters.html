@@ -1,0 +1,202 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    background: #fbfcfe;
+    display: flex;
+    justify-content: center;
+    padding: 24px;
+  }
+  .panel {
+    width: 480px;
+    background: #ffffff;
+    border: 1px solid #dbdfe7;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(35, 44, 59, 0.08);
+    overflow: hidden;
+  }
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    border-bottom: 1px solid #eceff3;
+  }
+  .icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background: #644c90;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .icon svg { width: 22px; height: 22px; }
+  .title-block { flex: 1; }
+  .title {
+    font-size: 17px;
+    font-weight: 600;
+    color: #2d2e3a;
+    line-height: 1.2;
+  }
+  .subtitle {
+    font-size: 12px;
+    color: #7e8188;
+    margin-top: 2px;
+  }
+  .close {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #9b9ea6;
+    font-size: 18px;
+  }
+  .body { padding: 18px 20px 24px; }
+  .param { margin-bottom: 16px; }
+  .label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: #555;
+    margin-bottom: 6px;
+  }
+  .label .req { color: #ea4b71; margin-left: 2px; }
+  .control {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border: 1px solid #dbdfe7;
+    border-radius: 6px;
+    height: 36px;
+    padding: 0 12px;
+    font-size: 13px;
+    color: #2d2e3a;
+    background: #fff;
+  }
+  .control .value { display: flex; align-items: center; gap: 8px; }
+  .control .chev { color: #9b9ea6; font-size: 11px; }
+  .control.mono .value { font-family: 'SF Mono', Consolas, monospace; font-size: 12.5px; }
+  .path-icon {
+    width: 16px; height: 16px; border-radius: 3px;
+    background: #eaf0fb; color: #5a67f2;
+    font-size: 10px; display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 700;
+  }
+  .segment {
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 1px solid #dbdfe7; border-radius: 6px;
+    height: 36px; padding: 0 10px; font-size: 12px; color: #555;
+  }
+  .dropdown-row { display: flex; gap: 8px; }
+  .dropdown-row .control { flex: 1; }
+  .notice {
+    display: flex; gap: 8px; align-items: flex-start;
+    background: #fdf6e3;
+    border: 1px solid #f0e3bb;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 12px;
+    color: #7a6a2f;
+    margin-top: 4px;
+  }
+  .notice .dot { flex-shrink: 0; margin-top: 1px; }
+  .section-divider {
+    border-top: 1px solid #eceff3;
+    margin: 18px -20px;
+  }
+  .chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: #f2f4f7;
+    border: 1px solid #e3e6ea;
+    border-radius: 6px;
+    height: 34px;
+    padding: 0 10px 0 12px;
+    font-size: 12.5px;
+    color: #2d2e3a;
+    margin-bottom: 8px;
+    width: 100%;
+  }
+  .chip .chev { margin-left: auto; color: #9b9ea6; font-size: 11px; }
+  .chip .drag { color: #c4c8cf; margin-right: 2px; font-size: 13px; letter-spacing: 1px; }
+  .chip b { font-weight: 600; }
+  .chip .x { color: #9b9ea6; font-size: 13px; margin-left: 6px; }
+  .add-option {
+    display: flex; align-items: center; gap: 8px;
+    border: 1px dashed #c9cdd4;
+    border-radius: 6px;
+    height: 36px;
+    padding: 0 12px;
+    font-size: 13px;
+    color: #7e8188;
+  }
+  .footer-tip {
+    margin-top: 14px;
+    font-size: 11.5px;
+    color: #9b9ea6;
+  }
+</style>
+</head>
+<body>
+  <div class="panel">
+    <div class="header">
+      <div class="icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round">
+          <rect x="2" y="4" width="20" height="7" rx="1.5"></rect>
+          <rect x="2" y="13" width="20" height="7" rx="1.5"></rect>
+          <circle cx="6" cy="7.5" r="0.6" fill="#fff"></circle>
+          <circle cx="9" cy="7.5" r="0.6" fill="#fff"></circle>
+          <circle cx="6" cy="16.5" r="0.6" fill="#fff"></circle>
+          <circle cx="9" cy="16.5" r="0.6" fill="#fff"></circle>
+        </svg>
+      </div>
+      <div class="title-block">
+        <div class="title">FTP Trigger</div>
+        <div class="subtitle">sftp: fileCreated</div>
+      </div>
+      <div class="close">&#10005;</div>
+    </div>
+    <div class="body">
+      <div class="param">
+        <div class="label">Protocol</div>
+        <div class="control"><span class="value">SFTP</span><span class="chev">&#9662;</span></div>
+      </div>
+      <div class="param">
+        <div class="label">Trigger On</div>
+        <div class="control"><span class="value">Changes Involving a Specific Folder</span><span class="chev">&#9662;</span></div>
+      </div>
+      <div class="param">
+        <div class="label">Folder</div>
+        <div class="dropdown-row">
+          <div class="segment"><span class="path-icon">A</span>By Path</div>
+          <div class="control mono"><span class="value">/uploads/incoming/</span></div>
+        </div>
+      </div>
+      <div class="param">
+        <div class="label">Watch For</div>
+        <div class="control"><span class="value">File Created</span><span class="chev">&#9662;</span></div>
+      </div>
+      <div class="section-divider"></div>
+      <div class="param">
+        <div class="label">Options</div>
+        <div class="chip"><span class="drag">&#8942;&#8942;</span><span><b>Filename Filter:</b> *.csv</span><span class="x">&#10005;</span><span class="chev">&#9662;</span></div>
+        <div class="chip"><span class="drag">&#8942;&#8942;</span><span><b>Ignore Files Modified Within Last:</b> 30</span><span class="x">&#10005;</span><span class="chev">&#9662;</span></div>
+        <div class="chip"><span class="drag">&#8942;&#8942;</span><span><b>Include File Content:</b> true</span><span class="x">&#10005;</span><span class="chev">&#9662;</span></div>
+        <div class="add-option">&#65291; Add Option</div>
+      </div>
+      <div class="notice">
+        <span class="dot">&#9432;</span>
+        <span>Changes within subfolders won't trigger this node</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
