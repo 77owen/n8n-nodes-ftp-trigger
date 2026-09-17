@@ -1,5 +1,5 @@
 {
-  "name": "n8n-nodes-ftp-trigger",
+  "name": "n8n-nodes-ftp-trigger-owen",
   "version": "1.2.0",
   "description": "n8n node for starting workflows when FTP or SFTP events occur.",
   "keywords": [
@@ -9,17 +9,22 @@
     "polling"
   ],
   "license": "MIT",
-  "homepage": "https://github.com/drudge/n8n-nodes-ftp-trigger",
+  "homepage": "https://github.com/77owen/n8n-nodes-ftp-trigger",
   "author": {
-    "name": "Nicholas Penree",
-    "email": "nick@penree.com"
+    "name": "Owen Billings"
   },
+  "contributors": [
+    {
+      "name": "Nicholas Penree",
+      "email": "nick@penree.com"
+    }
+  ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/drudge/n8n-nodes-ftp-trigger.git"
+    "url": "https://github.com/77owen/n8n-nodes-ftp-trigger.git"
   },
   "bugs": {
-    "url": "https://github.com/drudge/n8n-nodes-ftp-trigger/issues"
+    "url": "https://github.com/77owen/n8n-nodes-ftp-trigger/issues"
   },
   "engines": {
     "node": ">=20.19"

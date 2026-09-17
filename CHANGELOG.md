@@ -30,6 +30,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Package renamed to `n8n-nodes-ftp-trigger-owen` and republished as a
+  community fork — the original `n8n-nodes-ftp-trigger` npm name is held by the
+  upstream author. Repository/homepage URLs now point to
+  `77owen/n8n-nodes-ftp-trigger`.
 - File modification detection now also compares the file **size** in addition to
   `mtime`, catching updates within the same second (FTP `LIST` timestamps have
   minute/second granularity depending on the server).

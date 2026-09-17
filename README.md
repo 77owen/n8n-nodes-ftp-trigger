@@ -25,9 +25,15 @@ The FTP Trigger node is a custom-built node for n8n that triggers a workflow on 
 ## Compatibility
 
 Requires n8n **1.241+** and works with **n8n 2.x** (Node.js >= 20.19). Community
-nodes are installed through the n8n UI — follow the
+nodes are installed through the n8n UI (**Settings → Community nodes →
+Install a community node**) using the package name
+`n8n-nodes-ftp-trigger-owen` — see the
 [installation guide](https://docs.n8n.io/integrations/community-nodes/installation/)
 in the n8n community nodes documentation.
+
+> This is a fork of [`drudge/n8n-nodes-ftp-trigger`](https://github.com/drudge/n8n-nodes-ftp-trigger)
+> by Nicholas Penree, republished under a new npm name because the original
+> package name is held upstream.
 
 ## Events
 

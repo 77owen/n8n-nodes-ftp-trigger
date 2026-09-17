@@ -1,13 +1,13 @@
 # Contributing
 
-Thanks for considering a contribution to `n8n-nodes-ftp-trigger`!
+Thanks for considering a contribution to `n8n-nodes-ftp-trigger-owen`!
 
 ## Development setup
 
 Requirements: **Node.js >= 20.19** (see `.nvmrc`) and npm.
 
 ```bash
-git clone https://github.com/drudge/n8n-nodes-ftp-trigger.git
+git clone https://github.com/77owen/n8n-nodes-ftp-trigger.git
 cd n8n-nodes-ftp-trigger
 npm install
 npm run build       # tsc + gulp icons -> dist/

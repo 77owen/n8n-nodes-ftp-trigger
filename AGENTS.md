@@ -4,7 +4,8 @@ Guidance for AI agents working in this repository.
 
 ## What this is
 
-An n8n **community node package** (`n8n-nodes-ftp-trigger`): a single polling
+An n8n **community node package** (`n8n-nodes-ftp-trigger-owen`, a renamed fork
+of `drudge/n8n-nodes-ftp-trigger`): a single polling
 trigger node that starts n8n workflows on FTP/SFTP filesystem changes
 (file/folder created, updated, deleted; watch-folder modified). TypeScript,
 compiled to CommonJS into `dist/`. n8n loads the compiled node from the `n8n`

@@ -1,5 +1,5 @@
 {
-	"node": "n8n-nodes-ftp-trigger.ftpTrigger",
+	"node": "n8n-nodes-ftp-trigger-owen.ftpTrigger",
 	"nodeVersion": "1.0",
 	"codexVersion": "1.0",
 	"categories": ["Core Nodes", "Data & Storage", "Development", "Utility"],
