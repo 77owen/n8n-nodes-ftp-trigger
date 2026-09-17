@@ -5,12 +5,18 @@ on:
     branches: [main]
   pull_request:
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     name: Lint, build & test (Node ${{ matrix.node-version }})
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
+    timeout-minutes: 15
     strategy:
       fail-fast: false
+      max-parallel: 1
       matrix:
         node-version: [20, 22]
     steps:
@@ -27,6 +33,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Clean stale build output
+        run: rm -rf dist *.tsbuildinfo
+
       - name: Build
         run: npm run build
 
@@ -34,7 +43,7 @@ jobs:
         run: npm test
 
       - name: Integration tests (real FTP & SFTP servers)
-        run: RUN_INTEGRATION=1 npm test
+        run: RUN_INTEGRATION=1 TZ=UTC npm test
 
       - name: Prepublish lint (n8n node validation)
         run: npx eslint -c .eslintrc.prepublish.js nodes package.json

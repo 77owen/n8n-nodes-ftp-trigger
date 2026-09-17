@@ -13,10 +13,10 @@ const { Server: SshServer, utils: sshUtils } = ssh2;
 const { STATUS_CODE } = ssh2.utils.sftp;
 const FtpSrv = require('ftp-srv');
 
-const FTP_PORT = 2121;
-const SFTP_PORT = 2222;
-const FTP_ROOT = '/tmp/ftp-root';
-const SFTP_ROOT = '/tmp/sftp-root';
+const FTP_PORT = Number(process.env.FTP_PORT) || 2121;
+const SFTP_PORT = Number(process.env.SFTP_PORT) || 2222;
+const FTP_ROOT = process.env.FTP_ROOT || '/tmp/ftp-root';
+const SFTP_ROOT = process.env.SFTP_ROOT || '/tmp/sftp-root';
 
 let passed = 0;
 let failed = 0;

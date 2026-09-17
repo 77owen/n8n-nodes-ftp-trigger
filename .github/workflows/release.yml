@@ -8,10 +8,15 @@ permissions:
   contents: write # required to create the GitHub release
   id-token: write # required for npm provenance
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   publish:
     name: Publish to npm & create GitHub release
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
+    timeout-minutes: 20
     environment: npm
     steps:
       - uses: actions/checkout@v4
@@ -25,13 +30,21 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Clean stale build output
+        run: rm -rf dist *.tsbuildinfo
+
       - name: Lint & build
         run: |
           npm run lint
           npm run build
 
       - name: Unit & integration tests
-        run: RUN_INTEGRATION=1 npm test
+        run: RUN_INTEGRATION=1 TZ=UTC npm test
+        env:
+          FTP_PORT: 2131
+          SFTP_PORT: 2232
+          FTP_ROOT: /tmp/ftp-root-release
+          SFTP_ROOT: /tmp/sftp-root-release
 
       - name: Check package contents
         run: npm pack --dry-run

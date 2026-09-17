@@ -26,6 +26,10 @@ npm run dev         # tsc --watch
 | `npm run test:watch`   | Unit tests in watch mode                                             |
 | `npm run test:integration` | Unit **and** integration tests against real local FTP/SFTP servers |
 
+The integration tests need `TZ=UTC`: `ftp-srv` prints local-time LIST dates while
+`promise-ftp` parses them as UTC, so on a non-UTC machine the parsed mtimes are
+shifted and the stability-window checks fail. Always run with `TZ=UTC` locally.
+
 ### Tests
 
 - **Unit tests** (`tests/lib.test.ts`) cover the pure logic in
@@ -39,7 +43,7 @@ npm run dev         # tsc --watch
 
   ```bash
   npm run build
-  RUN_INTEGRATION=1 npm test
+  TZ=UTC RUN_INTEGRATION=1 npm test
   ```
 
 CI (`.github/workflows/ci.yml`) runs lint, build, unit tests, integration tests

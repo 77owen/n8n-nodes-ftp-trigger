@@ -83,7 +83,7 @@ validated directly from the node using the built-in connection test.
 npm install
 npm run build
 npm test                  # unit tests
-RUN_INTEGRATION=1 npm test # + integration tests against real local FTP/SFTP servers
+RUN_INTEGRATION=1 TZ=UTC npm test # + integration tests against real local FTP/SFTP servers
 ```
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for architecture notes and the release
