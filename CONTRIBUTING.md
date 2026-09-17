@@ -4,7 +4,8 @@ Thanks for considering a contribution to `n8n-nodes-ftp-trigger-owen`!
 
 ## Development setup
 
-Requirements: **Node.js >= 20.19** (see `.nvmrc`) and npm.
+Requirements: **Node.js 22** (see `.nvmrc`) and npm. (Development tooling no
+longer installs on Node 20 — the compiled node itself still supports >=20.19.)
 
 ```bash
 git clone https://github.com/77owen/n8n-nodes-ftp-trigger.git

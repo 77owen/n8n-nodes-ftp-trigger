@@ -30,7 +30,9 @@ npm pack --dry-run           # verify package contents
 ```
 
 CI (`.github/workflows/ci.yml`) runs lint, build, unit tests,
-`RUN_INTEGRATION=1 npm test`, and the prepublish lint on Node 20 and 22.
+`RUN_INTEGRATION=1 npm test`, and the prepublish lint on Node 22 only
+(current upstream `n8n-core` dev dependencies, e.g. `isolated-vm`, no longer
+install on Node 20; the compiled node itself still declares `engines` >=20.19).
 `.nvmrc` pins Node 22.
 
 ### Release process
