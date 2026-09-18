@@ -162,3 +162,10 @@ intentional n8n UX, don't "fix" it.
   (`.eslintrc.prepublish.js`) that re-enables the
   `community-package-json-name-still-default` rule as an error — don't rename
   the package to a `n8n-nodes-` default-style name.
+- Child parameters inside a `collection` must NOT have `displayOptions`
+  referencing parameters outside that collection (e.g. `event`): n8n's editor
+  parameter resolver hits "Could not resolve parameter dependencies. Max
+  iterations reached!" and the node cannot be added to a workflow. Neither
+  `npm run lint` nor the tests catch this (tests drive `poll()` through a mock
+  context, not the UI resolver). Keep such options always visible and gate the
+  behavior at runtime instead (see `includeFileContent`).

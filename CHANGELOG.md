@@ -5,6 +5,18 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-09-17
+
+### Fixed
+
+- The n8n editor failed to render the node ("Could not resolve parameter
+  dependencies. Max iterations reached!") because the Include File Content
+  option inside the folder-event Options collection used the Watch For
+  parameter in its visibility rules. Visibility rules on children of
+  `collection` parameters are not supported by n8n; the option is now always
+  shown and only takes effect for file created/updated events (unchanged
+  runtime behavior).
+
 ## [1.2.0] - 2026-09-16
 
 ### Added

@@ -268,18 +268,7 @@ export class FtpTrigger implements INodeType {
 						type: 'boolean',
 						default: false,
 						description:
-							'Whether to download the file and include its content as binary data (property "data") in each emitted item. Not available for folder or file-deleted events.',
-						displayOptions: {
-							hide: {
-								event: [
-									'fileDeleted',
-									'folderCreated',
-									'folderDeleted',
-									'folderUpdated',
-									'watchFolderUpdated',
-								],
-							},
-						},
+							'Whether to download the file and include its content as binary data (property "data") in each emitted item. Only applies to file created and file updated events; ignored otherwise.',
 					},
 				],
 			},
